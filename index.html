@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>小麥所｜線上菜單</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;700&display=swap');
+        
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #050505;
+            color: #e5e5e5;
+            overflow: hidden;
+            touch-action: pan-y;
+        }
+
+        /* 菜單主容器 */
+        .menu-container {
+            scroll-snap-type: x mandatory;
+            display: flex;
+            overflow-x: auto;
+            overflow-y: hidden;
+            -webkit-overflow-scrolling: touch;
+            height: 100vh;
+            scrollbar-width: none;
+        }
+
+        .menu-container::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* 跨頁單元 */
+        .menu-spread {
+            scroll-snap-align: center;
+            flex: 0 0 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: env(safe-area-inset-top) 5px env(safe-area-inset-bottom) 5px;
+            position: relative;
+        }
+
+        /* 圖片容器 */
+        .spread-wrapper {
+            display: flex;
+            width: 100%;
+            max-width: 900px;
+            aspect-ratio: 1.414 / 1; 
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+            border-radius: 2px;
+            overflow: hidden;
+            position: relative;
+            background-color: #111;
+        }
+
+        /* 實體書本中線陰影 */
+        .spread-wrapper::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 0;
+            bottom: 0;
+            width: 8%;
+            max-width: 40px;
+            transform: translateX(-50%);
+            background: linear-gradient(to right, 
+                rgba(0,0,0,0) 0%, 
+                rgba(0,0,0,0.2) 40%, 
+                rgba(0,0,0,0.5) 50%, 
+                rgba(0,0,0,0.2) 60%, 
+                rgba(0,0,0,0) 100%);
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .spread-wrapper img {
+            width: 50%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+        }
+
+        /* 導覽按鈕 */
+        .nav-btn {
+            position: fixed;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(8px);
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 40;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.2s;
+        }
+
+        .nav-btn:active {
+            background: rgba(212, 175, 55, 0.4);
+            scale: 0.9;
+        }
+
+        .nav-btn.prev { left: 15px; }
+        .nav-btn.next { right: 15px; }
+        .btn-hidden { opacity: 0; pointer-events: none; }
+
+        /* 行動呼籲按鈕容器 (CTA) */
+        .cta-container {
+            position: fixed;
+            bottom: 100px; /* 位於導覽點上方 */
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            display: flex;
+            gap: 12px;
+            z-index: 50;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+
+        .cta-container.visible {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+            pointer-events: auto;
+        }
+
+        .cta-btn {
+            padding: 10px 20px;
+            border-radius: 99px;
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+        }
+
+        .loading-overlay {
+            position: fixed;
+            inset: 0;
+            background: #050505;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+
+        .nav-dot.active {
+            background-color: #d4af37;
+            width: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 讀取畫面 -->
+    <div id="loader" class="loading-overlay">
+        <div class="h-12 w-12 border-2 border-yellow-800/30 border-t-yellow-600 rounded-full animate-spin mb-4"></div>
+        <p class="text-[10px] tracking-[0.5em] text-yellow-600/60 uppercase">Komugi Sho</p>
+    </div>
+
+    <!-- 頂部標題列 -->
+    <header class="fixed top-0 left-0 w-full z-50 bg-black/40 backdrop-blur-md py-4 px-6 flex justify-between items-center border-b border-white/5">
+        <h1 class="text-xs font-bold tracking-[0.2em] text-white">小麥所 勤美店 <span class="font-light text-gray-500 ml-1">MENU</span></h1>
+        <button id="indexBtn" class="text-[10px] border border-yellow-600/50 text-yellow-600 px-3 py-1 rounded">
+            快速目錄
+        </button>
+    </header>
+
+    <!-- 翻頁導覽按鈕 -->
+    <button id="prevBtn" class="nav-btn prev btn-hidden">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+    </button>
+    <button id="nextBtn" class="nav-btn next">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+    </button>
+
+    <!-- 停滯浮現的行動呼籲按鈕 -->
+    <div id="ctaContainer" class="cta-container">
+        <!-- 更新後的訂位網址 -->
+        <a href="https://inline.app/booking/-NKWaWXE5m_Rv0YC-kZd:inline-live-3/-NKWdRi1gRYq_Gbr0zMQ" target="_blank" class="cta-btn bg-yellow-600 text-black">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/><path d="m9 16 2 2 4-4"/></svg>
+            線上訂位
+        </a>
+        <!-- 更新後的電話資訊 -->
+        <a href="tel:0423010601" class="cta-btn bg-white/10 text-white backdrop-blur-md border border-white/20">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+            電話訂位
+        </a>
+    </div>
+
+    <!-- 菜單主容器 -->
+    <main id="menuContainer" class="menu-container">
+        <!-- JS 生成內容 -->
+    </main>
+
+    <!-- 底部導覽資訊 -->
+    <footer class="fixed bottom-0 left-0 w-full z-30 p-6 pointer-events-none bg-gradient-to-t from-black to-transparent">
+        <div class="flex justify-center space-x-2 pointer-events-auto" id="dotsContainer"></div>
+        <p id="pageIndicator" class="text-center mt-3 text-[9px] text-gray-400 tracking-[0.3em]">
+            1 / 12
+        </p>
+    </footer>
+
+    <!-- 目錄彈窗 -->
+    <div id="modal" class="fixed inset-0 z-[60] bg-black/98 hidden backdrop-blur-xl p-10">
+        <div class="max-w-xs mx-auto">
+            <div class="flex justify-between items-center mb-10">
+                <h2 class="text-lg font-bold text-yellow-600 tracking-widest uppercase">Index</h2>
+                <button id="closeModal" class="text-2xl text-white/30">&times;</button>
+            </div>
+            <div id="indexList" class="grid grid-cols-2 gap-4"></div>
+            <p class="mt-12 text-[10px] text-gray-600 text-center uppercase tracking-widest">Select to jump</p>
+        </div>
+    </div>
+
+    <script>
+        const baseUrl = "https://raw.githubusercontent.com/sayit-studio/Komugi-sho/main/menu_%E5%8B%A4%E7%BE%8E/";
+        const container = document.getElementById('menuContainer');
+        const dotsContainer = document.getElementById('dotsContainer');
+        const indexList = document.getElementById('indexList');
+        const pageIndicator = document.getElementById('pageIndicator');
+        const ctaContainer = document.getElementById('ctaContainer');
+        const totalSpreads = 12;
+
+        let idleTimer;
+
+        // 初始化生成
+        for (let i = 1; i <= totalSpreads; i++) {
+            const spread = document.createElement('div');
+            spread.className = 'menu-spread';
+            spread.id = `page-${i}`;
+            
+            const wrapper = document.createElement('div');
+            wrapper.className = 'spread-wrapper';
+            
+            const imgL = document.createElement('img');
+            imgL.src = `${baseUrl}${i}-1.jpg`;
+            imgL.loading = (i <= 2) ? "eager" : "lazy";
+            
+            const imgR = document.createElement('img');
+            imgR.src = `${baseUrl}${i}-2.jpg`;
+            imgR.loading = (i <= 2) ? "eager" : "lazy";
+
+            wrapper.appendChild(imgL);
+            wrapper.appendChild(imgR);
+            spread.appendChild(wrapper);
+            container.appendChild(spread);
+
+            const dot = document.createElement('div');
+            dot.className = `nav-dot h-1 w-2 bg-white/10 rounded-full transition-all duration-300 ${i === 1 ? 'active' : ''}`;
+            dot.id = `dot-${i}`;
+            dotsContainer.appendChild(dot);
+
+            const btn = document.createElement('button');
+            btn.className = "bg-white/5 border border-white/5 py-4 text-[10px] tracking-widest text-gray-400 hover:text-yellow-600 hover:border-yellow-600/30 transition";
+            btn.innerText = `PAGE ${i < 10 ? '0'+i : i}`;
+            btn.onclick = () => scrollToPage(i);
+            indexList.appendChild(btn);
+        }
+
+        function scrollToPage(idx) {
+            const target = document.getElementById(`page-${idx}`);
+            container.scrollTo({ left: target.offsetLeft, behavior: 'smooth' });
+            document.getElementById('modal').classList.add('hidden');
+        }
+
+        let current = 1;
+        
+        // 核心邏輯：監控捲動與停滯
+        container.addEventListener('scroll', () => {
+            const idx = Math.round(container.scrollLeft / window.innerWidth) + 1;
+            if (idx !== current) {
+                current = idx;
+                update();
+            }
+            
+            resetIdleTimer();
+        });
+
+        function resetIdleTimer() {
+            ctaContainer.classList.remove('visible');
+            clearTimeout(idleTimer);
+            
+            idleTimer = setTimeout(() => {
+                ctaContainer.classList.add('visible');
+            }, 3000);
+        }
+
+        function update() {
+            document.querySelectorAll('.nav-dot').forEach((d, i) => {
+                d.classList.toggle('active', i + 1 === current);
+            });
+            pageIndicator.innerText = `${current} / ${totalSpreads}`;
+            document.getElementById('prevBtn').classList.toggle('btn-hidden', current === 1);
+            document.getElementById('nextBtn').classList.toggle('btn-hidden', current === totalSpreads);
+        }
+
+        resetIdleTimer();
+
+        document.getElementById('nextBtn').onclick = () => current < totalSpreads && scrollToPage(current + 1);
+        document.getElementById('prevBtn').onclick = () => current > 1 && scrollToPage(current - 1);
+        document.getElementById('indexBtn').onclick = () => document.getElementById('modal').classList.remove('hidden');
+        document.getElementById('closeModal').onclick = () => document.getElementById('modal').classList.add('hidden');
+
+        window.onload = () => {
+            setTimeout(() => {
+                const l = document.getElementById('loader');
+                l.style.opacity = '0';
+                setTimeout(() => l.remove(), 500);
+            }, 1000);
+        };
+    </script>
+</body>
+</html>
