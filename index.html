@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=3.0, user-scalable=yes, viewport-fit=cover">
     <title>小麥所｜線上菜單</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -13,7 +13,68 @@
             background-color: #050505;
             color: #e5e5e5;
             overflow: hidden;
-            touch-action: pan-y;
+            touch-action: manipulation;
+        }
+
+        /* 店點選擇頁面 */
+        .landing-page {
+            position: fixed;
+            inset: 0;
+            background: radial-gradient(circle at center, #1a1a1a 0%, #050505 100%);
+            z-index: 200;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            transition: all 0.6s cubic-bezier(0.87, 0, 0.13, 1);
+        }
+
+        .landing-page.hide {
+            transform: translateY(-100%);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .store-btn {
+            width: 100%;
+            max-width: 320px;
+            background: linear-gradient(135deg, #222 0%, #111 100%);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            padding: 22px;
+            margin-bottom: 15px;
+            border-radius: 12px;
+            text-align: center;
+            transition: all 0.3s;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+        }
+
+        .store-btn:active {
+            transform: scale(0.96);
+            border-color: #d4af37;
+            background: #1a1a1a;
+        }
+
+        /* 正在建置中 Overlay */
+        .construction-overlay {
+            position: fixed;
+            inset: 0;
+            background: #050505;
+            z-index: 150;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            text-align: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s;
+        }
+
+        .construction-overlay.visible {
+            opacity: 1;
+            pointer-events: auto;
         }
 
         /* 菜單主容器 */
@@ -27,11 +88,8 @@
             scrollbar-width: none;
         }
 
-        .menu-container::-webkit-scrollbar {
-            display: none;
-        }
+        .menu-container::-webkit-scrollbar { display: none; }
 
-        /* 跨頁單元 */
         .menu-spread {
             scroll-snap-align: center;
             flex: 0 0 100vw;
@@ -39,287 +97,436 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: env(safe-area-inset-top) 5px env(safe-area-inset-bottom) 5px;
+            padding: 80px 10px 120px 10px;
             position: relative;
+            overflow: hidden;
+        }
+
+        /* 縮放容器 */
+        .zoom-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+            transform-origin: center;
+        }
+
+        .zoom-container.zoomed {
+            transform: scale(2.2);
+            cursor: move;
         }
 
         /* 圖片容器 */
         .spread-wrapper {
             display: flex;
             width: 100%;
-            max-width: 900px;
+            max-width: 1000px;
             aspect-ratio: 1.414 / 1; 
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
-            border-radius: 2px;
-            overflow: hidden;
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.9);
             position: relative;
             background-color: #111;
         }
 
-        /* 實體書本中線陰影 */
         .spread-wrapper::after {
             content: '';
             position: absolute;
-            left: 50%;
-            top: 0;
-            bottom: 0;
-            width: 8%;
-            max-width: 40px;
+            left: 50%; top: 0; bottom: 0;
+            width: 6%; max-width: 30px;
             transform: translateX(-50%);
-            background: linear-gradient(to right, 
-                rgba(0,0,0,0) 0%, 
-                rgba(0,0,0,0.2) 40%, 
-                rgba(0,0,0,0.5) 50%, 
-                rgba(0,0,0,0.2) 60%, 
-                rgba(0,0,0,0) 100%);
+            background: linear-gradient(to right, rgba(0,0,0,0) 0%, rgba(0,0,0,0.1) 40%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.1) 60%, rgba(0,0,0,0) 100%);
             pointer-events: none;
             z-index: 10;
         }
 
-        .spread-wrapper img {
-            width: 50%;
-            height: 100%;
-            object-fit: contain;
-            display: block;
-        }
+        .spread-wrapper img { width: 50%; height: 100%; object-fit: contain; display: block; }
 
-        /* 導覽按鈕 */
         .nav-btn {
             position: fixed;
-            top: 50%;
-            transform: translateY(-50%);
-            background: rgba(0, 0, 0, 0.3);
-            backdrop-filter: blur(8px);
+            top: 50%; transform: translateY(-50%);
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(10px);
             color: white;
-            width: 50px;
-            height: 50px;
+            width: 48px; height: 48px;
             border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            display: flex; align-items: center; justify-content: center;
             z-index: 40;
             border: 1px solid rgba(255, 255, 255, 0.1);
-            transition: all 0.2s;
         }
 
-        .nav-btn:active {
-            background: rgba(212, 175, 55, 0.4);
-            scale: 0.9;
-        }
-
-        .nav-btn.prev { left: 15px; }
-        .nav-btn.next { right: 15px; }
         .btn-hidden { opacity: 0; pointer-events: none; }
 
-        /* 行動呼籲按鈕容器 (CTA) */
+        /* CTA 按鈕容器 */
         .cta-container {
             position: fixed;
-            bottom: 110px; /* 稍微上移避開導覽點 */
-            left: 50%;
+            bottom: 110px; left: 50%;
             transform: translateX(-50%) translateY(20px);
-            display: flex;
-            gap: 10px;
+            display: flex; gap: 10px;
             z-index: 50;
             opacity: 0;
             pointer-events: none;
             transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
-            width: auto;
-            max-width: 95vw; /* 限制寬度防止溢出螢幕 */
-            justify-content: center;
         }
 
-        .cta-container.visible {
-            opacity: 1;
-            transform: translateX(-50%) translateY(0);
-            pointer-events: auto;
-        }
+        .cta-container.visible { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
 
         .cta-btn {
-            padding: 10px 18px;
+            padding: 12px 22px;
             border-radius: 99px;
-            font-size: 13px;
-            font-weight: 700;
-            letter-spacing: 0.5px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.6);
-            white-space: nowrap; /* 強制文字不換行 */
-            flex-shrink: 0;      /* 防止按鈕被擠壓縮小 */
+            font-size: 13px; font-weight: 800;
+            display: flex; align-items: center; gap: 8px;
+            white-space: nowrap; flex-shrink: 0;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.7);
         }
 
-        .loading-overlay {
-            position: fixed;
-            inset: 0;
-            background: #050505;
+        .nav-dot.active { background-color: #d4af37; width: 22px; }
+
+        /* 導覽功能按鈕 - 實體按鈕風格 */
+        .solid-btn {
+            background: #d4af37;
+            color: #000;
+            font-weight: 900;
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-size: 11px;
+            letter-spacing: 0.5px;
+            box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4);
+            transition: all 0.2s;
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
-            z-index: 100;
+        }
+        .solid-btn:active { transform: scale(0.95); opacity: 0.9; }
+
+        .zoom-btn {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 11px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+        .zoom-btn.active {
+            background: #fff;
+            color: #000;
+            border-color: #fff;
         }
 
-        .nav-dot.active {
-            background-color: #d4af37;
-            width: 20px;
+        .back-btn {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 11px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
+
+        /* 縮放提示條 */
+        .zoom-tip {
+            position: fixed;
+            top: 85px; left: 50%; transform: translateX(-50%);
+            background: rgba(212, 175, 55, 0.9);
+            color: #000;
+            padding: 5px 15px; border-radius: 20px;
+            font-size: 11px; font-weight: 700;
+            z-index: 30; pointer-events: none;
+            opacity: 0; transition: opacity 0.3s;
+        }
+        .zoomed-active .zoom-tip { opacity: 1; }
     </style>
 </head>
 <body>
 
-    <!-- 讀取畫面 -->
-    <div id="loader" class="loading-overlay">
-        <div class="h-12 w-12 border-2 border-yellow-800/30 border-t-yellow-600 rounded-full animate-spin mb-4"></div>
-        <p class="text-[10px] tracking-[0.5em] text-yellow-600/60 uppercase">Komugi Sho</p>
+    <!-- 店點選擇首頁 -->
+    <div id="landingPage" class="landing-page">
+        <div class="mb-14 text-center">
+            <h2 class="text-yellow-600 tracking-[0.6em] text-xs mb-3">KOMUGI-SHO</h2>
+            <h3 class="text-2xl font-bold tracking-[0.2em] text-white">請選擇分店查看菜單</h3>
+        </div>
+        
+        <button onclick="handleStoreClick('博館店', '小麥所居酒屋/日式揚物 博館店')" class="store-btn group">
+            <span class="block text-gray-500 text-[10px] mb-1 tracking-widest uppercase">Japanese Fried Food</span>
+            <span class="text-white font-bold text-lg">小麥所 博館店</span>
+        </button>
+
+        <button onclick="handleStoreClick('勤美店', '小麥所居酒屋/旨火串烤 勤美店')" class="store-btn group border-yellow-600/50">
+            <span class="block text-yellow-600/70 text-[10px] mb-1 tracking-widest uppercase font-bold">Recommended / Charcoal Grill</span>
+            <span class="text-white font-bold text-xl">小麥所 勤美店</span>
+        </button>
+
+        <button onclick="handleStoreClick('公益店', '小麥所居酒屋/旬味小肴 公益店')" class="store-btn group">
+            <span class="block text-gray-500 text-[10px] mb-1 tracking-widest uppercase">Seasonal Appetizers</span>
+            <span class="text-white font-bold text-lg">小麥所 公益店</span>
+        </button>
+
+        <p class="mt-10 text-[9px] text-gray-600 tracking-[0.3em] uppercase opacity-50">Select a location to continue</p>
     </div>
 
-    <!-- 頂部標題列 -->
-    <header class="fixed top-0 left-0 w-full z-50 bg-black/40 backdrop-blur-md py-4 px-6 flex justify-between items-center border-b border-white/5">
-        <h1 class="text-xs font-bold tracking-[0.2em] text-white">小麥所 勤美店 <span class="font-light text-gray-500 ml-1">MENU</span></h1>
-        <button id="indexBtn" class="text-[10px] border border-yellow-600/50 text-yellow-600 px-3 py-1 rounded">
-            快速目錄
+    <!-- 正在建置中提示頁 -->
+    <div id="constructionPage" class="construction-overlay">
+        <div class="mb-8">
+            <div class="h-20 w-20 border-t-2 border-yellow-600 rounded-full animate-spin mx-auto mb-6"></div>
+            <h2 id="constTitle" class="text-xl font-bold text-white mb-2">分店名稱</h2>
+            <p class="text-yellow-600/80 tracking-[0.3em] font-bold">線上菜單正在建置中</p>
+            <p class="text-gray-500 text-sm mt-4">COMING SOON</p>
+        </div>
+        <button onclick="backToLanding()" class="bg-white/10 text-white px-8 py-3 rounded-full border border-white/20 text-sm">
+            返回選擇其他分店
         </button>
+    </div>
+
+    <!-- 讀取載入畫面 -->
+    <div id="loader" class="hidden fixed inset-0 bg-[#050505] z-[300] flex flex-col items-center justify-center">
+        <div class="h-10 w-10 border-2 border-yellow-800/20 border-t-yellow-600 rounded-full animate-spin mb-4"></div>
+        <p class="text-[10px] tracking-[0.4em] text-yellow-600 uppercase">Loading Menu...</p>
+    </div>
+
+    <!-- 頂部導覽列 -->
+    <header class="fixed top-0 left-0 w-full z-50 bg-black/60 backdrop-blur-xl py-4 px-4 flex justify-between items-center border-b border-white/5">
+        <div class="flex flex-col max-w-[100px]">
+            <h1 id="mainTitle" class="text-[10px] font-black tracking-tighter text-white truncate">小麥所</h1>
+            <span class="text-[8px] text-gray-500 tracking-tighter uppercase font-bold">Menu Nav</span>
+        </div>
+        <div class="flex gap-1.5">
+            <button onclick="backToLanding()" class="back-btn flex items-center gap-1">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                <span class="text-[10px] font-bold">返回</span>
+            </button>
+            <button id="zoomToggle" class="zoom-btn flex items-center gap-1">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/><line x1="11" x2="11" y1="8" y2="14"/><line x1="8" x2="14" y1="11" y2="11"/></svg>
+                <span class="text-[10px] font-bold">縮放</span>
+            </button>
+            <button id="indexBtn" class="solid-btn">快速目錄</button>
+        </div>
     </header>
 
-    <!-- 翻頁導覽按鈕 -->
-    <button id="prevBtn" class="nav-btn prev btn-hidden">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+    <div class="zoom-tip">現在為一鍵放大模式，可自由拖曳查看</div>
+
+    <!-- 左右翻頁按鈕 -->
+    <button id="prevBtn" class="nav-btn left-[10px] btn-hidden">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
     </button>
-    <button id="nextBtn" class="nav-btn next">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+    <button id="nextBtn" class="nav-btn right-[10px]">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
     </button>
 
-    <!-- 停滯浮現的行動呼籲按鈕 -->
+    <!-- 底部行動呼籲 CTA -->
     <div id="ctaContainer" class="cta-container">
         <a href="https://inline.app/booking/-NKWaWXE5m_Rv0YC-kZd:inline-live-3/-NKWdRi1gRYq_Gbr0zMQ" target="_blank" class="cta-btn bg-yellow-600 text-black">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/><path d="m9 16 2 2 4-4"/></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/><path d="m9 16 2 2 4-4"/></svg>
             線上訂位
         </a>
         <a href="tel:0423010601" class="cta-btn bg-white/10 text-white backdrop-blur-md border border-white/20">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
             電話訂位
         </a>
     </div>
 
-    <!-- 菜單主容器 -->
-    <main id="menuContainer" class="menu-container">
-        <!-- JS 生成內容 -->
-    </main>
+    <!-- 菜單主要捲動容器 -->
+    <main id="menuContainer" class="menu-container"></main>
 
-    <!-- 底部導覽資訊 -->
-    <footer class="fixed bottom-0 left-0 w-full z-30 p-6 pointer-events-none bg-gradient-to-t from-black to-transparent">
+    <!-- 底部頁碼與導覽點 -->
+    <footer class="fixed bottom-0 left-0 w-full z-30 p-8 pointer-events-none bg-gradient-to-t from-black to-transparent">
         <div class="flex justify-center space-x-2 pointer-events-auto" id="dotsContainer"></div>
-        <p id="pageIndicator" class="text-center mt-3 text-[9px] text-gray-400 tracking-[0.3em]">
-            1 / 12
-        </p>
+        <p id="pageIndicator" class="text-center mt-3 text-[9px] text-gray-500 tracking-[0.4em] font-bold">PAGE 1 / 12</p>
     </footer>
 
-    <!-- 目錄彈窗 -->
-    <div id="modal" class="fixed inset-0 z-[60] bg-black/98 hidden backdrop-blur-xl p-10">
+    <!-- 目錄全螢幕彈窗 -->
+    <div id="modal" class="fixed inset-0 z-[100] bg-black/98 hidden backdrop-blur-2xl p-10 overflow-y-auto">
         <div class="max-w-xs mx-auto">
-            <div class="flex justify-between items-center mb-10">
-                <h2 class="text-lg font-bold text-yellow-600 tracking-widest uppercase">Index</h2>
-                <button id="closeModal" class="text-2xl text-white/30">&times;</button>
+            <div class="flex justify-between items-center mb-10 border-b border-white/10 pb-4">
+                <div class="flex flex-col">
+                    <h2 id="modalStoreName" class="text-[10px] text-yellow-600 tracking-widest uppercase font-bold">Store Menu</h2>
+                    <span class="text-xl font-bold text-white">快速導覽目錄</span>
+                </div>
+                <button id="closeModal" class="text-3xl text-white/40 hover:text-white">&times;</button>
             </div>
-            <div id="indexList" class="grid grid-cols-2 gap-4"></div>
-            <p class="mt-12 text-[10px] text-gray-600 text-center uppercase tracking-widest">Select to jump</p>
+            <div id="indexList" class="grid grid-cols-2 gap-3 pb-20"></div>
         </div>
     </div>
 
     <script>
-        const baseUrl = "https://raw.githubusercontent.com/sayit-studio/Komugi-sho/main/menu_%E5%8B%A4%E7%BE%8E/";
+        // 設定勤美店的圖片來源
+        const storeData = {
+            '勤美店': 'https://raw.githubusercontent.com/sayit-studio/Komugi-sho/main/menu_%E5%8B%A4%E7%BE%8E/',
+        };
+
+        const totalSpreads = 12;
         const container = document.getElementById('menuContainer');
         const dotsContainer = document.getElementById('dotsContainer');
         const indexList = document.getElementById('indexList');
-        const pageIndicator = document.getElementById('pageIndicator');
         const ctaContainer = document.getElementById('ctaContainer');
-        const totalSpreads = 12;
-
+        const landingPage = document.getElementById('landingPage');
+        const constructionPage = document.getElementById('constructionPage');
+        const loader = document.getElementById('loader');
+        
         let idleTimer;
+        let isZoomed = false;
+        let currentPage = 1;
 
-        // 初始化生成
-        for (let i = 1; i <= totalSpreads; i++) {
-            const spread = document.createElement('div');
-            spread.className = 'menu-spread';
-            spread.id = `page-${i}`;
+        // 處理店點點擊
+        function handleStoreClick(key, fullName) {
+            if (key !== '勤美店') {
+                document.getElementById('constTitle').innerText = fullName;
+                constructionPage.classList.add('visible');
+                resetIdleTimer();
+                return;
+            }
+
+            document.getElementById('mainTitle').innerText = fullName;
+            document.getElementById('modalStoreName').innerText = fullName;
+            loader.classList.remove('hidden');
+            landingPage.classList.add('hide');
             
-            const wrapper = document.createElement('div');
-            wrapper.className = 'spread-wrapper';
+            initMenu(storeData[key]);
             
-            const imgL = document.createElement('img');
-            imgL.src = `${baseUrl}${i}-1.jpg`;
-            imgL.loading = (i <= 2) ? "eager" : "lazy";
-            
-            const imgR = document.createElement('img');
-            imgR.src = `${baseUrl}${i}-2.jpg`;
-            imgR.loading = (i <= 2) ? "eager" : "lazy";
-
-            wrapper.appendChild(imgL);
-            wrapper.appendChild(imgR);
-            spread.appendChild(wrapper);
-            container.appendChild(spread);
-
-            const dot = document.createElement('div');
-            dot.className = `nav-dot h-1 w-2 bg-white/10 rounded-full transition-all duration-300 ${i === 1 ? 'active' : ''}`;
-            dot.id = `dot-${i}`;
-            dotsContainer.appendChild(dot);
-
-            const btn = document.createElement('button');
-            btn.className = "bg-white/5 border border-white/5 py-4 text-[10px] tracking-widest text-gray-400 hover:text-yellow-600 hover:border-yellow-600/30 transition";
-            btn.innerText = `PAGE ${i < 10 ? '0'+i : i}`;
-            btn.onclick = () => scrollToPage(i);
-            indexList.appendChild(btn);
+            setTimeout(() => {
+                loader.classList.add('hidden');
+                resetIdleTimer();
+            }, 1000);
         }
 
+        // 返回分店選擇首頁
+        function backToLanding() {
+            constructionPage.classList.remove('visible');
+            landingPage.classList.remove('hide'); 
+            
+            setTimeout(() => {
+                landingPage.classList.remove('hide');
+                constructionPage.classList.remove('visible');
+                ctaContainer.classList.remove('visible');
+                clearTimeout(idleTimer);
+                
+                // 返回首頁時若是在放大狀態，則重置
+                if (isZoomed) {
+                    toggleZoom();
+                }
+            }, 50);
+        }
+
+        // 初始化菜單生成
+        function initMenu(path) {
+            container.innerHTML = '';
+            dotsContainer.innerHTML = '';
+            indexList.innerHTML = '';
+
+            for (let i = 1; i <= totalSpreads; i++) {
+                const spread = document.createElement('div');
+                spread.className = 'menu-spread';
+                spread.id = `page-${i}`;
+                
+                const zoomCont = document.createElement('div');
+                zoomCont.className = 'zoom-container';
+                
+                const wrapper = document.createElement('div');
+                wrapper.className = 'spread-wrapper';
+                
+                const imgL = document.createElement('img');
+                imgL.src = `${path}${i}-1.jpg`;
+                imgL.loading = (i <= 2) ? "eager" : "lazy";
+                
+                const imgR = document.createElement('img');
+                imgR.src = `${path}${i}-2.jpg`;
+                imgR.loading = (i <= 2) ? "eager" : "lazy";
+
+                wrapper.appendChild(imgL);
+                wrapper.appendChild(imgR);
+                zoomCont.appendChild(wrapper);
+                spread.appendChild(zoomCont);
+                container.appendChild(spread);
+
+                // 生成底部導覽點
+                const dot = document.createElement('div');
+                dot.className = `nav-dot h-1 w-2 bg-white/10 rounded-full transition-all duration-300 ${i === 1 ? 'active' : ''}`;
+                dot.id = `dot-${i}`;
+                dotsContainer.appendChild(dot);
+
+                // 生成目錄內按鈕
+                const btn = document.createElement('button');
+                btn.className = "bg-white/5 border border-white/5 py-4 text-[10px] tracking-widest text-gray-400 hover:text-yellow-600 hover:border-yellow-600/30 transition rounded font-bold";
+                btn.innerText = `PAGE ${i < 10 ? '0'+i : i}`;
+                btn.onclick = () => scrollToPage(i);
+                indexList.appendChild(btn);
+            }
+            updateUI(1);
+        }
+
+        // 跳轉至特定頁面
         function scrollToPage(idx) {
             const target = document.getElementById(`page-${idx}`);
             container.scrollTo({ left: target.offsetLeft, behavior: 'smooth' });
             document.getElementById('modal').classList.add('hidden');
         }
 
-        let current = 1;
-        
+        // 切換放大模式
+        function toggleZoom() {
+            isZoomed = !isZoomed;
+            const currentSpread = document.querySelector(`#page-${currentPage} .zoom-container`);
+            const btn = document.getElementById('zoomToggle');
+            
+            if (isZoomed) {
+                currentSpread.classList.add('zoomed');
+                document.body.classList.add('zoomed-active');
+                container.style.overflowX = 'hidden';
+                btn.classList.add('active');
+            } else {
+                currentSpread.classList.remove('zoomed');
+                document.body.classList.remove('zoomed-active');
+                container.style.overflowX = 'auto';
+                btn.classList.remove('active');
+            }
+        }
+
+        document.getElementById('zoomToggle').onclick = toggleZoom;
+
+        // 滾動監聽
         container.addEventListener('scroll', () => {
             const idx = Math.round(container.scrollLeft / window.innerWidth) + 1;
-            if (idx !== current) {
-                current = idx;
-                update();
+            if (idx !== currentPage) {
+                currentPage = idx;
+                updateUI(currentPage);
             }
             resetIdleTimer();
         });
 
+        // 更新介面狀態
+        function updateUI(p) {
+            document.querySelectorAll('.nav-dot').forEach((d, i) => {
+                d.classList.toggle('active', i + 1 === p);
+            });
+            document.getElementById('pageIndicator').innerText = `PAGE ${p} / ${totalSpreads}`;
+            document.getElementById('prevBtn').classList.toggle('btn-hidden', p === 1);
+            document.getElementById('nextBtn').classList.toggle('btn-hidden', p === totalSpreads);
+            
+            // 換頁時自動重置放大狀態
+            if (isZoomed) {
+                document.querySelectorAll('.zoom-container').forEach(c => c.classList.remove('zoomed'));
+                isZoomed = false;
+                container.style.overflowX = 'auto';
+                document.body.classList.remove('zoomed-active');
+                document.getElementById('zoomToggle').classList.remove('active');
+            }
+        }
+
+        // 偵測停滯計時器
         function resetIdleTimer() {
             ctaContainer.classList.remove('visible');
             clearTimeout(idleTimer);
-            
-            idleTimer = setTimeout(() => {
-                ctaContainer.classList.add('visible');
-            }, 3000);
+            // 僅在菜單頁面且非建置提示時觸發
+            if (landingPage.classList.contains('hide') && !constructionPage.classList.contains('visible')) {
+                idleTimer = setTimeout(() => {
+                    ctaContainer.classList.add('visible');
+                }, 3000);
+            }
         }
 
-        function update() {
-            document.querySelectorAll('.nav-dot').forEach((d, i) => {
-                d.classList.toggle('active', i + 1 === current);
-            });
-            pageIndicator.innerText = `${current} / ${totalSpreads}`;
-            document.getElementById('prevBtn').classList.toggle('btn-hidden', current === 1);
-            document.getElementById('nextBtn').classList.toggle('btn-hidden', current === totalSpreads);
-        }
-
-        resetIdleTimer();
-
-        document.getElementById('nextBtn').onclick = () => current < totalSpreads && scrollToPage(current + 1);
-        document.getElementById('prevBtn').onclick = () => current > 1 && scrollToPage(current - 1);
+        // 基本按鈕事件綁定
+        document.getElementById('nextBtn').onclick = () => currentPage < totalSpreads && scrollToPage(currentPage + 1);
+        document.getElementById('prevBtn').onclick = () => currentPage > 1 && scrollToPage(currentPage - 1);
         document.getElementById('indexBtn').onclick = () => document.getElementById('modal').classList.remove('hidden');
         document.getElementById('closeModal').onclick = () => document.getElementById('modal').classList.add('hidden');
 
-        window.onload = () => {
-            setTimeout(() => {
-                const l = document.getElementById('loader');
-                l.style.opacity = '0';
-                setTimeout(() => l.remove(), 500);
-            }, 1000);
-        };
     </script>
 </body>
 </html>
