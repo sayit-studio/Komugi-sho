@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=3.0, user-scalable=yes, viewport-fit=cover">
-    <title>小麥所｜全台分店線上菜單</title>
+    <title>小麥所｜分店線上菜單</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;700;900&display=swap');
@@ -194,7 +194,7 @@
         .zoomed-active .zoom-tip { opacity: 1; }
     </style>
 </head>
-<body class="is-double"> <!-- 預設為拼接模式，動態切換 -->
+<body class="is-double">
 
     <!-- 分店選擇首頁 -->
     <div id="landingPage" class="landing-page">
@@ -226,7 +226,7 @@
     <!-- 讀取畫面 -->
     <div id="loader" class="hidden fixed inset-0 bg-[#050505] z-[300] flex flex-col items-center justify-center">
         <div class="h-10 w-10 border-2 border-yellow-800/20 border-t-yellow-600 rounded-full animate-spin mb-4"></div>
-        <p class="text-[10px] tracking-[0.4em] text-yellow-600 uppercase">Menu Loading...</p>
+        <p id="loaderText" class="text-[10px] tracking-[0.4em] text-yellow-600 uppercase">Detecting Menu Pages...</p>
     </div>
 
     <!-- 頂部導覽 -->
@@ -276,7 +276,7 @@
     <!-- 底部頁碼 -->
     <footer class="fixed bottom-0 left-0 w-full z-30 p-8 pointer-events-none bg-gradient-to-t from-black to-transparent">
         <div class="flex justify-center space-x-2 pointer-events-auto" id="dotsContainer"></div>
-        <p id="pageIndicator" class="text-center mt-3 text-[9px] text-gray-500 tracking-[0.4em] font-bold">PAGE 1 / 12</p>
+        <p id="pageIndicator" class="text-center mt-3 text-[9px] text-gray-500 tracking-[0.4em] font-bold">PAGE 1 / 1</p>
     </footer>
 
     <!-- 目錄 -->
@@ -297,9 +297,9 @@
         const GITHUB_RAW = "https://raw.githubusercontent.com/sayit-studio/Komugi-sho/main/";
         
         const storeConfigs = {
-            '勤美店': { path: "menu_qinmei/", layout: "double", pages: 12 },
-            '博館店': { path: "menu_boguan/", layout: "single", pages: 12 },
-            '公益店': { path: "menu_gongyi/", layout: "single", pages: 12 }
+            '勤美店': { path: "menu_qinmei/", layout: "double" },
+            '博館店': { path: "menu_boguan/", layout: "single" },
+            '公益店': { path: "menu_gongyi/", layout: "single" }
         };
 
         const container = document.getElementById('menuContainer');
@@ -313,24 +313,32 @@
         let isZoomed = false;
         let currentPage = 1;
         let currentConfig = null;
+        let detectedPageCount = 0;
 
-        function handleStoreClick(key, fullName) {
+        // 偵測圖片是否存在
+        async function checkImageExists(url) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => resolve(true);
+                img.onerror = () => resolve(false);
+                img.src = url;
+            });
+        }
+
+        async function handleStoreClick(key, fullName) {
             currentConfig = storeConfigs[key];
             document.getElementById('mainTitle').innerText = fullName;
             document.getElementById('modalStoreName').innerText = fullName;
             
-            // 切換 CSS 模式
             document.body.className = currentConfig.layout === "double" ? "is-double" : "is-single";
 
             loader.classList.remove('hidden');
             landingPage.classList.add('hide');
             
-            initMenu(currentConfig);
+            await initMenu(currentConfig);
             
-            setTimeout(() => {
-                loader.classList.add('hidden');
-                resetIdleTimer();
-            }, 1000);
+            loader.classList.add('hidden');
+            resetIdleTimer();
         }
 
         function backToLanding() {
@@ -340,7 +348,7 @@
             if (isZoomed) toggleZoom();
         }
 
-        function loadImageWithFallback(imgElement, path, fileName) {
+        function setupImageSet(imgElement, path, fileName) {
             const primary = `${GITHUB_RAW}${path}${fileName}.jpg`;
             const fallback = `${GITHUB_RAW}${path}${fileName}.JPG`;
             imgElement.src = primary;
@@ -350,62 +358,80 @@
             };
         }
 
-        function initMenu(config) {
+        async function initMenu(config) {
             container.innerHTML = '';
             dotsContainer.innerHTML = '';
             indexList.innerHTML = '';
             currentPage = 1;
+            detectedPageCount = 0;
 
-            for (let i = 1; i <= config.pages; i++) {
-                const spread = document.createElement('div');
-                spread.className = 'menu-spread';
-                spread.id = `page-${i}`;
-                
-                const zoomCont = document.createElement('div');
-                zoomCont.className = 'zoom-container';
-                
-                const wrapper = document.createElement('div');
-                wrapper.className = 'spread-wrapper';
-
-                if (config.layout === "double") {
-                    // 勤美：左右拼接模式 (1-1, 1-2)
-                    const imgL = document.createElement('img');
-                    const imgR = document.createElement('img');
-                    loadImageWithFallback(imgL, config.path, `${i}-1`);
-                    loadImageWithFallback(imgR, config.path, `${i}-2`);
-                    wrapper.appendChild(imgL);
-                    wrapper.appendChild(imgR);
-                } else {
-                    // 博館/公益：單圖全頁模式 (1, 2, 3...)
-                    const imgFull = document.createElement('img');
-                    loadImageWithFallback(imgFull, config.path, `${i}`);
-                    wrapper.appendChild(imgFull);
+            // 動態偵測頁數，上限設為 50 以防無限迴圈
+            for (let i = 1; i <= 50; i++) {
+                let fileName = config.layout === "double" ? `${i}-1` : `${i}`;
+                let exists = await checkImageExists(`${GITHUB_RAW}${config.path}${fileName}.jpg`);
+                if (!exists) {
+                    exists = await checkImageExists(`${GITHUB_RAW}${config.path}${fileName}.JPG`);
                 }
 
-                zoomCont.appendChild(wrapper);
-                spread.appendChild(zoomCont);
-                container.appendChild(spread);
-
-                // 導覽點
-                const dot = document.createElement('div');
-                dot.className = `nav-dot h-1 w-2 bg-white/10 rounded-full transition-all duration-300 ${i === 1 ? 'active' : ''}`;
-                dot.id = `dot-${i}`;
-                dotsContainer.appendChild(dot);
-
-                // 目錄按鈕
-                const btn = document.createElement('button');
-                btn.className = "bg-white/5 border border-white/5 py-4 text-[10px] tracking-widest text-gray-400 hover:text-yellow-600 hover:border-yellow-600/30 transition rounded font-bold";
-                btn.innerText = `PAGE ${i < 10 ? '0'+i : i}`;
-                btn.onclick = () => scrollToPage(i);
-                indexList.appendChild(btn);
+                if (exists) {
+                    detectedPageCount = i;
+                    createPageElement(i, config);
+                } else {
+                    break; // 找不到下一頁，停止偵測
+                }
             }
+
             container.scrollLeft = 0;
             updateUI(1);
         }
 
+        function createPageElement(i, config) {
+            const spread = document.createElement('div');
+            spread.className = 'menu-spread';
+            spread.id = `page-${i}`;
+            
+            const zoomCont = document.createElement('div');
+            zoomCont.className = 'zoom-container';
+            
+            const wrapper = document.createElement('div');
+            wrapper.className = 'spread-wrapper';
+
+            if (config.layout === "double") {
+                const imgL = document.createElement('img');
+                const imgR = document.createElement('img');
+                setupImageSet(imgL, config.path, `${i}-1`);
+                setupImageSet(imgR, config.path, `${i}-2`);
+                wrapper.appendChild(imgL);
+                wrapper.appendChild(imgR);
+            } else {
+                const imgFull = document.createElement('img');
+                setupImageSet(imgFull, config.path, `${i}`);
+                wrapper.appendChild(imgFull);
+            }
+
+            zoomCont.appendChild(wrapper);
+            spread.appendChild(zoomCont);
+            container.appendChild(spread);
+
+            // 導覽點
+            const dot = document.createElement('div');
+            dot.className = `nav-dot h-1 w-2 bg-white/10 rounded-full transition-all duration-300 ${i === 1 ? 'active' : ''}`;
+            dot.id = `dot-${i}`;
+            dotsContainer.appendChild(dot);
+
+            // 目錄按鈕
+            const btn = document.createElement('button');
+            btn.className = "bg-white/5 border border-white/5 py-4 text-[10px] tracking-widest text-gray-400 hover:text-yellow-600 hover:border-yellow-600/30 transition rounded font-bold";
+            btn.innerText = `PAGE ${i < 10 ? '0'+i : i}`;
+            btn.onclick = () => scrollToPage(i);
+            indexList.appendChild(btn);
+        }
+
         function scrollToPage(idx) {
             const target = document.getElementById(`page-${idx}`);
-            container.scrollTo({ left: target.offsetLeft, behavior: 'smooth' });
+            if (target) {
+                container.scrollTo({ left: target.offsetLeft, behavior: 'smooth' });
+            }
             document.getElementById('modal').classList.add('hidden');
         }
 
@@ -442,9 +468,9 @@
             document.querySelectorAll('.nav-dot').forEach((d, i) => {
                 d.classList.toggle('active', i + 1 === p);
             });
-            document.getElementById('pageIndicator').innerText = `PAGE ${p} / ${currentConfig ? currentConfig.pages : 12}`;
+            document.getElementById('pageIndicator').innerText = `PAGE ${p} / ${detectedPageCount}`;
             document.getElementById('prevBtn').classList.toggle('btn-hidden', p === 1);
-            document.getElementById('nextBtn').classList.toggle('btn-hidden', p === (currentConfig ? currentConfig.pages : 12));
+            document.getElementById('nextBtn').classList.toggle('btn-hidden', p === detectedPageCount);
             
             if (isZoomed) {
                 document.querySelectorAll('.zoom-container').forEach(c => c.classList.remove('zoomed'));
@@ -465,7 +491,7 @@
             }
         }
 
-        document.getElementById('nextBtn').onclick = () => currentPage < currentConfig.pages && scrollToPage(currentPage + 1);
+        document.getElementById('nextBtn').onclick = () => currentPage < detectedPageCount && scrollToPage(currentPage + 1);
         document.getElementById('prevBtn').onclick = () => currentPage > 1 && scrollToPage(currentPage - 1);
         document.getElementById('indexBtn').onclick = () => document.getElementById('modal').classList.remove('hidden');
         document.getElementById('closeModal').onclick = () => document.getElementById('modal').classList.add('hidden');
