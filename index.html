@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=3.0, user-scalable=yes, viewport-fit=cover">
-    <title>小麥所｜分店線上菜單</title>
+    <title>小麥所｜全台分店線上菜單</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;700;900&display=swap');
@@ -16,7 +16,7 @@
             touch-action: manipulation;
         }
 
-        /* 店點選擇首頁 */
+        /* 店點選擇頁面 */
         .landing-page {
             position: fixed;
             inset: 0;
@@ -36,7 +36,7 @@
             pointer-events: none;
         }
 
-        /* 分店按鈕基礎樣式 */
+        /* 分店按鈕樣式 */
         .store-btn {
             width: 100%;
             max-width: 340px;
@@ -52,30 +52,21 @@
             overflow: hidden;
         }
 
-        .store-btn::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, transparent 100%);
-            pointer-events: none;
-        }
-
         .store-btn:active { transform: scale(0.96); filter: brightness(1.2); }
 
-        /* 分店特色色彩設定 */
-        /* 博館店：磚紅 (日式揚物) */
+        /* 博館店：磚紅 */
         .btn-boguan { border-color: rgba(230, 57, 70, 0.4); }
         .btn-boguan .store-label { color: #e63946; }
         .btn-boguan .store-name { color: #fff; text-shadow: 0 0 10px rgba(230, 57, 70, 0.5); }
         .btn-boguan:hover { border-color: #e63946; background: rgba(230, 57, 70, 0.05); }
 
-        /* 勤美店：琥珀金 (旨火串烤) */
+        /* 勤美店：琥珀金 */
         .btn-qinmei { border-color: rgba(212, 175, 55, 0.4); }
         .btn-qinmei .store-label { color: #d4af37; }
         .btn-qinmei .store-name { color: #fff; text-shadow: 0 0 10px rgba(212, 175, 55, 0.5); }
         .btn-qinmei:hover { border-color: #d4af37; background: rgba(212, 175, 55, 0.05); }
 
-        /* 公益店：青綠 (旬味小肴) */
+        /* 公益店：青綠 */
         .btn-gongyi { border-color: rgba(42, 157, 143, 0.4); }
         .btn-gongyi .store-label { color: #2a9d8f; }
         .btn-gongyi .store-name { color: #fff; text-shadow: 0 0 10px rgba(42, 157, 143, 0.5); }
@@ -127,7 +118,8 @@
             background-color: #111;
         }
 
-        .spread-wrapper::after {
+        /* 拼接陰影：僅在拼接模式顯示 */
+        .is-double .spread-wrapper::after {
             content: '';
             position: absolute;
             left: 50%; top: 0; bottom: 0;
@@ -138,9 +130,12 @@
             z-index: 10;
         }
 
-        .spread-wrapper img { width: 50%; height: 100%; object-fit: contain; display: block; }
+        .spread-wrapper img { height: 100%; object-fit: contain; display: block; }
+        /* 寬度適配 */
+        .is-double .spread-wrapper img { width: 50%; }
+        .is-single .spread-wrapper img { width: 100%; }
 
-        /* 按鈕與導覽 */
+        /* 導覽元件 */
         .nav-btn {
             position: fixed;
             top: 50%; transform: translateY(-50%);
@@ -199,7 +194,7 @@
         .zoomed-active .zoom-tip { opacity: 1; }
     </style>
 </head>
-<body>
+<body class="is-double"> <!-- 預設為拼接模式，動態切換 -->
 
     <!-- 分店選擇首頁 -->
     <div id="landingPage" class="landing-page">
@@ -210,19 +205,16 @@
             <h3 class="text-2xl font-bold tracking-[0.1em] text-white">請選擇分店查看菜單</h3>
         </div>
         
-        <!-- 博館店 -->
         <button onclick="handleStoreClick('博館店', '小麥所居酒屋/日式揚物 博館店')" class="store-btn group btn-boguan">
             <span class="block store-label text-[10px] mb-1 tracking-widest uppercase font-black">Japanese Fried Food</span>
             <span class="store-name font-black text-xl">小麥所 博館店</span>
         </button>
 
-        <!-- 勤美店 -->
         <button onclick="handleStoreClick('勤美店', '小麥所居酒屋/旨火串烤 勤美店')" class="store-btn group btn-qinmei">
             <span class="block store-label text-[10px] mb-1 tracking-widest uppercase font-black">Charcoal Grill</span>
             <span class="store-name font-black text-2xl">小麥所 勤美店</span>
         </button>
 
-        <!-- 公益店 -->
         <button onclick="handleStoreClick('公益店', '小麥所居酒屋/旬味小肴 公益店')" class="store-btn group btn-gongyi">
             <span class="block store-label text-[10px] mb-1 tracking-widest uppercase font-black">Seasonal Appetizers</span>
             <span class="store-name font-black text-xl">小麥所 公益店</span>
@@ -231,13 +223,13 @@
         <p class="mt-10 text-[9px] text-gray-600 tracking-[0.3em] uppercase opacity-50">Select a location to continue</p>
     </div>
 
-    <!-- 讀取載入畫面 -->
+    <!-- 讀取畫面 -->
     <div id="loader" class="hidden fixed inset-0 bg-[#050505] z-[300] flex flex-col items-center justify-center">
         <div class="h-10 w-10 border-2 border-yellow-800/20 border-t-yellow-600 rounded-full animate-spin mb-4"></div>
-        <p id="loadingText" class="text-[10px] tracking-[0.4em] text-yellow-600 uppercase">Menu Loading...</p>
+        <p class="text-[10px] tracking-[0.4em] text-yellow-600 uppercase">Menu Loading...</p>
     </div>
 
-    <!-- 頂部導覽列 -->
+    <!-- 頂部導覽 -->
     <header class="fixed top-0 left-0 w-full z-50 bg-black/60 backdrop-blur-xl py-4 px-4 flex justify-between items-center border-b border-white/5">
         <div class="flex flex-col max-w-[120px]">
             <h1 id="mainTitle" class="text-[10px] font-black tracking-tighter text-white truncate">小麥所</h1>
@@ -258,7 +250,7 @@
 
     <div class="zoom-tip">縮放模式，可自由拖曳</div>
 
-    <!-- 左右翻頁按鈕 -->
+    <!-- 翻頁按鈕 -->
     <button id="prevBtn" class="nav-btn left-[10px] btn-hidden">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
     </button>
@@ -266,7 +258,7 @@
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
     </button>
 
-    <!-- 底部行動呼籲 CTA -->
+    <!-- CTA -->
     <div id="ctaContainer" class="cta-container">
         <a href="https://inline.app/booking/-NKWaWXE5m_Rv0YC-kZd:inline-live-3/-NKWdRi1gRYq_Gbr0zMQ" target="_blank" class="cta-btn bg-yellow-600 text-black">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/><path d="m9 16 2 2 4-4"/></svg>
@@ -278,16 +270,16 @@
         </a>
     </div>
 
-    <!-- 菜單主要捲動容器 -->
+    <!-- 菜單主容器 -->
     <main id="menuContainer" class="menu-container"></main>
 
-    <!-- 底部資訊 -->
+    <!-- 底部頁碼 -->
     <footer class="fixed bottom-0 left-0 w-full z-30 p-8 pointer-events-none bg-gradient-to-t from-black to-transparent">
         <div class="flex justify-center space-x-2 pointer-events-auto" id="dotsContainer"></div>
         <p id="pageIndicator" class="text-center mt-3 text-[9px] text-gray-500 tracking-[0.4em] font-bold">PAGE 1 / 12</p>
     </footer>
 
-    <!-- 目錄彈窗 -->
+    <!-- 目錄 -->
     <div id="modal" class="fixed inset-0 z-[100] bg-black/98 hidden backdrop-blur-2xl p-10 overflow-y-auto">
         <div class="max-w-xs mx-auto">
             <div class="flex justify-between items-center mb-10 border-b border-white/10 pb-4">
@@ -302,17 +294,14 @@
     </div>
 
     <script>
-        // GitHub 基礎路徑
         const GITHUB_RAW = "https://raw.githubusercontent.com/sayit-studio/Komugi-sho/main/";
         
-        // 設定分店配置與命名規則
         const storeConfigs = {
-            '勤美店': { path: "menu_qinmei/", naming: "dash" }, // 1-1, 1-2
-            '博館店': { path: "menu_boguan/", naming: "index" }, // 1, 2, 3, 4
-            '公益店': { path: "menu_gongyi/", naming: "index" }  // 1, 2, 3, 4
+            '勤美店': { path: "menu_qinmei/", layout: "double", pages: 12 },
+            '博館店': { path: "menu_boguan/", layout: "single", pages: 12 },
+            '公益店': { path: "menu_gongyi/", layout: "single", pages: 12 }
         };
 
-        const totalSpreads = 12;
         const container = document.getElementById('menuContainer');
         const dotsContainer = document.getElementById('dotsContainer');
         const indexList = document.getElementById('indexList');
@@ -323,14 +312,20 @@
         let idleTimer;
         let isZoomed = false;
         let currentPage = 1;
+        let currentConfig = null;
 
         function handleStoreClick(key, fullName) {
+            currentConfig = storeConfigs[key];
             document.getElementById('mainTitle').innerText = fullName;
             document.getElementById('modalStoreName').innerText = fullName;
+            
+            // 切換 CSS 模式
+            document.body.className = currentConfig.layout === "double" ? "is-double" : "is-single";
+
             loader.classList.remove('hidden');
             landingPage.classList.add('hide');
             
-            initMenu(storeConfigs[key]);
+            initMenu(currentConfig);
             
             setTimeout(() => {
                 loader.classList.add('hidden');
@@ -345,29 +340,13 @@
             if (isZoomed) toggleZoom();
         }
 
-        // 核心圖片載入函式：處理不同命名規則與大小寫相容
-        function loadImageSet(imgElement, config, pageNum, side) {
-            let fileName = "";
-            if (config.naming === "dash") {
-                // 勤美模式: 1-1, 1-2
-                fileName = `${pageNum}-${side}`;
-            } else {
-                // 博館/公益模式: 1, 2, 3, 4
-                fileName = (pageNum - 1) * 2 + side;
-            }
-
-            const primarySrc = `${GITHUB_RAW}${config.path}${fileName}.jpg`;
-            const fallbackSrc = `${GITHUB_RAW}${config.path}${fileName}.JPG`;
-            
-            imgElement.src = primarySrc;
-            
+        function loadImageWithFallback(imgElement, path, fileName) {
+            const primary = `${GITHUB_RAW}${path}${fileName}.jpg`;
+            const fallback = `${GITHUB_RAW}${path}${fileName}.JPG`;
+            imgElement.src = primary;
             imgElement.onerror = () => {
-                if (imgElement.src === primarySrc) {
-                    imgElement.src = fallbackSrc;
-                } else {
-                    imgElement.onerror = null;
-                    imgElement.src = "https://via.placeholder.com/600x840/111/333?text=Komugi+Sho";
-                }
+                if (imgElement.src === primary) imgElement.src = fallback;
+                else imgElement.src = "https://via.placeholder.com/600x840/111/333?text=Komugi+Sho";
             };
         }
 
@@ -377,7 +356,7 @@
             indexList.innerHTML = '';
             currentPage = 1;
 
-            for (let i = 1; i <= totalSpreads; i++) {
+            for (let i = 1; i <= config.pages; i++) {
                 const spread = document.createElement('div');
                 spread.className = 'menu-spread';
                 spread.id = `page-${i}`;
@@ -387,24 +366,33 @@
                 
                 const wrapper = document.createElement('div');
                 wrapper.className = 'spread-wrapper';
-                
-                const imgL = document.createElement('img');
-                const imgR = document.createElement('img');
-                
-                loadImageSet(imgL, config, i, 1);
-                loadImageSet(imgR, config, i, 2);
 
-                wrapper.appendChild(imgL);
-                wrapper.appendChild(imgR);
+                if (config.layout === "double") {
+                    // 勤美：左右拼接模式 (1-1, 1-2)
+                    const imgL = document.createElement('img');
+                    const imgR = document.createElement('img');
+                    loadImageWithFallback(imgL, config.path, `${i}-1`);
+                    loadImageWithFallback(imgR, config.path, `${i}-2`);
+                    wrapper.appendChild(imgL);
+                    wrapper.appendChild(imgR);
+                } else {
+                    // 博館/公益：單圖全頁模式 (1, 2, 3...)
+                    const imgFull = document.createElement('img');
+                    loadImageWithFallback(imgFull, config.path, `${i}`);
+                    wrapper.appendChild(imgFull);
+                }
+
                 zoomCont.appendChild(wrapper);
                 spread.appendChild(zoomCont);
                 container.appendChild(spread);
 
+                // 導覽點
                 const dot = document.createElement('div');
                 dot.className = `nav-dot h-1 w-2 bg-white/10 rounded-full transition-all duration-300 ${i === 1 ? 'active' : ''}`;
                 dot.id = `dot-${i}`;
                 dotsContainer.appendChild(dot);
 
+                // 目錄按鈕
                 const btn = document.createElement('button');
                 btn.className = "bg-white/5 border border-white/5 py-4 text-[10px] tracking-widest text-gray-400 hover:text-yellow-600 hover:border-yellow-600/30 transition rounded font-bold";
                 btn.innerText = `PAGE ${i < 10 ? '0'+i : i}`;
@@ -454,9 +442,9 @@
             document.querySelectorAll('.nav-dot').forEach((d, i) => {
                 d.classList.toggle('active', i + 1 === p);
             });
-            document.getElementById('pageIndicator').innerText = `PAGE ${p} / ${totalSpreads}`;
+            document.getElementById('pageIndicator').innerText = `PAGE ${p} / ${currentConfig ? currentConfig.pages : 12}`;
             document.getElementById('prevBtn').classList.toggle('btn-hidden', p === 1);
-            document.getElementById('nextBtn').classList.toggle('btn-hidden', p === totalSpreads);
+            document.getElementById('nextBtn').classList.toggle('btn-hidden', p === (currentConfig ? currentConfig.pages : 12));
             
             if (isZoomed) {
                 document.querySelectorAll('.zoom-container').forEach(c => c.classList.remove('zoomed'));
@@ -477,7 +465,7 @@
             }
         }
 
-        document.getElementById('nextBtn').onclick = () => currentPage < totalSpreads && scrollToPage(currentPage + 1);
+        document.getElementById('nextBtn').onclick = () => currentPage < currentConfig.pages && scrollToPage(currentPage + 1);
         document.getElementById('prevBtn').onclick = () => currentPage > 1 && scrollToPage(currentPage - 1);
         document.getElementById('indexBtn').onclick = () => document.getElementById('modal').classList.remove('hidden');
         document.getElementById('closeModal').onclick = () => document.getElementById('modal').classList.add('hidden');
