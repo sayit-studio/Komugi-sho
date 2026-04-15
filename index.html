@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=3.0, user-scalable=yes, viewport-fit=cover">
-    <title>小麥所｜分店線上菜單</title>
+    <title>小麥所｜全台分店線上菜單</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;700;900&display=swap');
@@ -13,7 +13,7 @@
             background-color: #050505;
             color: #e5e5e5;
             overflow: hidden;
-            touch-action: manipulation;
+            touch-action: none; /* 禁用預設行為以支援自定義拖曳 */
         }
 
         /* 店點選擇頁面 */
@@ -28,6 +28,7 @@
             justify-content: center;
             padding: 20px;
             transition: all 0.6s cubic-bezier(0.87, 0, 0.13, 1);
+            touch-action: auto;
         }
 
         .landing-page.hide {
@@ -54,19 +55,16 @@
 
         .store-btn:active { transform: scale(0.96); filter: brightness(1.2); }
 
-        /* 博館店：磚紅 */
         .btn-boguan { border-color: rgba(230, 57, 70, 0.4); }
         .btn-boguan .store-label { color: #e63946; }
         .btn-boguan .store-name { color: #fff; text-shadow: 0 0 10px rgba(230, 57, 70, 0.5); }
         .btn-boguan:hover { border-color: #e63946; background: rgba(230, 57, 70, 0.05); }
 
-        /* 勤美店：琥珀金 */
         .btn-qinmei { border-color: rgba(212, 175, 55, 0.4); }
         .btn-qinmei .store-label { color: #d4af37; }
         .btn-qinmei .store-name { color: #fff; text-shadow: 0 0 10px rgba(212, 175, 55, 0.5); }
         .btn-qinmei:hover { border-color: #d4af37; background: rgba(212, 175, 55, 0.05); }
 
-        /* 公益店：青綠 */
         .btn-gongyi { border-color: rgba(42, 157, 143, 0.4); }
         .btn-gongyi .store-label { color: #2a9d8f; }
         .btn-gongyi .store-name { color: #fff; text-shadow: 0 0 10px rgba(42, 157, 143, 0.5); }
@@ -81,6 +79,7 @@
             -webkit-overflow-scrolling: touch;
             height: 100vh;
             scrollbar-width: none;
+            touch-action: pan-x;
         }
         .menu-container::-webkit-scrollbar { display: none; }
 
@@ -104,8 +103,17 @@
             justify-content: center;
             transition: transform 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
             transform-origin: center;
+            will-change: transform;
         }
-        .zoom-container.zoomed { transform: scale(2.2); cursor: move; }
+        
+        /* 縮放激活狀態：取消 transition 以利於拖曳流暢 */
+        .zoomed-active .zoom-container.zoomed {
+            transition: none;
+            cursor: grab;
+        }
+        .zoomed-active .zoom-container.zoomed:active {
+            cursor: grabbing;
+        }
 
         /* 圖片容器 */
         .spread-wrapper {
@@ -118,7 +126,6 @@
             background-color: #111;
         }
 
-        /* 拼接陰影：僅在拼接模式顯示 */
         .is-double .spread-wrapper::after {
             content: '';
             position: absolute;
@@ -131,7 +138,6 @@
         }
 
         .spread-wrapper img { height: 100%; object-fit: contain; display: block; }
-        /* 寬度適配 */
         .is-double .spread-wrapper img { width: 50%; }
         .is-single .spread-wrapper img { width: 100%; }
 
@@ -147,6 +153,7 @@
             display: flex; align-items: center; justify-content: center;
             z-index: 40;
             border: 1px solid rgba(255, 255, 255, 0.1);
+            touch-action: auto;
         }
         .btn-hidden { opacity: 0; pointer-events: none; }
 
@@ -159,6 +166,7 @@
             opacity: 0;
             pointer-events: none;
             transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+            touch-action: auto;
         }
         .cta-container.visible { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
 
@@ -248,7 +256,7 @@
         </div>
     </header>
 
-    <div class="zoom-tip">縮放模式，可自由拖曳</div>
+    <div class="zoom-tip">拖曳可移動菜單查看細節</div>
 
     <!-- 翻頁按鈕 -->
     <button id="prevBtn" class="nav-btn left-[10px] btn-hidden">
@@ -315,7 +323,12 @@
         let currentConfig = null;
         let detectedPageCount = 0;
 
-        // 偵測圖片是否存在
+        // 拖曳相關變數
+        let isDragging = false;
+        let startX, startY;
+        let translateX = 0, translateY = 0;
+        let lastTranslateX = 0, lastTranslateY = 0;
+
         async function checkImageExists(url) {
             return new Promise((resolve) => {
                 const img = new Image();
@@ -329,14 +342,10 @@
             currentConfig = storeConfigs[key];
             document.getElementById('mainTitle').innerText = fullName;
             document.getElementById('modalStoreName').innerText = fullName;
-            
             document.body.className = currentConfig.layout === "double" ? "is-double" : "is-single";
-
             loader.classList.remove('hidden');
             landingPage.classList.add('hide');
-            
             await initMenu(currentConfig);
-            
             loader.classList.add('hidden');
             resetIdleTimer();
         }
@@ -365,22 +374,16 @@
             currentPage = 1;
             detectedPageCount = 0;
 
-            // 動態偵測頁數，上限設為 50 以防無限迴圈
             for (let i = 1; i <= 50; i++) {
                 let fileName = config.layout === "double" ? `${i}-1` : `${i}`;
                 let exists = await checkImageExists(`${GITHUB_RAW}${config.path}${fileName}.jpg`);
-                if (!exists) {
-                    exists = await checkImageExists(`${GITHUB_RAW}${config.path}${fileName}.JPG`);
-                }
+                if (!exists) exists = await checkImageExists(`${GITHUB_RAW}${config.path}${fileName}.JPG`);
 
                 if (exists) {
                     detectedPageCount = i;
                     createPageElement(i, config);
-                } else {
-                    break; // 找不到下一頁，停止偵測
-                }
+                } else break;
             }
-
             container.scrollLeft = 0;
             updateUI(1);
         }
@@ -393,6 +396,11 @@
             const zoomCont = document.createElement('div');
             zoomCont.className = 'zoom-container';
             
+            // 綁定拖曳事件
+            zoomCont.addEventListener('pointerdown', handleDragStart);
+            window.addEventListener('pointermove', handleDragMove);
+            window.addEventListener('pointerup', handleDragEnd);
+
             const wrapper = document.createElement('div');
             wrapper.className = 'spread-wrapper';
 
@@ -413,13 +421,11 @@
             spread.appendChild(zoomCont);
             container.appendChild(spread);
 
-            // 導覽點
             const dot = document.createElement('div');
             dot.className = `nav-dot h-1 w-2 bg-white/10 rounded-full transition-all duration-300 ${i === 1 ? 'active' : ''}`;
             dot.id = `dot-${i}`;
             dotsContainer.appendChild(dot);
 
-            // 目錄按鈕
             const btn = document.createElement('button');
             btn.className = "bg-white/5 border border-white/5 py-4 text-[10px] tracking-widest text-gray-400 hover:text-yellow-600 hover:border-yellow-600/30 transition rounded font-bold";
             btn.innerText = `PAGE ${i < 10 ? '0'+i : i}`;
@@ -427,29 +433,81 @@
             indexList.appendChild(btn);
         }
 
+        // 拖曳邏輯函式
+        function handleDragStart(e) {
+            if (!isZoomed) return;
+            isDragging = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            lastTranslateX = translateX;
+            lastTranslateY = translateY;
+            // 避免選取文字或觸發瀏覽器手勢
+            e.preventDefault();
+        }
+
+        function handleDragMove(e) {
+            if (!isDragging || !isZoomed) return;
+            const deltaX = e.clientX - startX;
+            const deltaY = e.clientY - startY;
+            
+            translateX = lastTranslateX + deltaX;
+            translateY = lastTranslateY + deltaY;
+            
+            applyTransform();
+        }
+
+        function handleDragEnd() {
+            isDragging = false;
+        }
+
+        function applyTransform() {
+            const el = document.querySelector(`#page-${currentPage} .zoom-container`);
+            if (el) {
+                if (isZoomed) {
+                    el.style.transform = `scale(2.2) translate(${translateX / 2.2}px, ${translateY / 2.2}px)`;
+                } else {
+                    el.style.transform = `scale(1) translate(0, 0)`;
+                }
+            }
+        }
+
         function scrollToPage(idx) {
             const target = document.getElementById(`page-${idx}`);
-            if (target) {
-                container.scrollTo({ left: target.offsetLeft, behavior: 'smooth' });
-            }
+            if (target) container.scrollTo({ left: target.offsetLeft, behavior: 'smooth' });
             document.getElementById('modal').classList.add('hidden');
         }
 
         function toggleZoom() {
             isZoomed = !isZoomed;
-            const currentSpread = document.querySelector(`#page-${currentPage} .zoom-container`);
             const btn = document.getElementById('zoomToggle');
             
+            // 重置拖曳位移
+            translateX = 0;
+            translateY = 0;
+            lastTranslateX = 0;
+            lastTranslateY = 0;
+
             if (isZoomed) {
-                currentSpread.classList.add('zoomed');
                 document.body.classList.add('zoomed-active');
                 container.style.overflowX = 'hidden';
                 btn.classList.add('bg-white', 'text-black');
+                
+                // 找到當前頁面並應用縮放
+                const currentEl = document.querySelector(`#page-${currentPage} .zoom-container`);
+                if (currentEl) {
+                    currentEl.classList.add('zoomed');
+                    applyTransform();
+                }
             } else {
-                currentSpread.classList.remove('zoomed');
                 document.body.classList.remove('zoomed-active');
                 container.style.overflowX = 'auto';
                 btn.classList.remove('bg-white', 'text-black');
+                
+                // 重置所有頁面縮放
+                document.querySelectorAll('.zoom-container').forEach(el => {
+                    el.classList.remove('zoomed');
+                    el.style.transform = '';
+                });
             }
         }
 
@@ -472,12 +530,16 @@
             document.getElementById('prevBtn').classList.toggle('btn-hidden', p === 1);
             document.getElementById('nextBtn').classList.toggle('btn-hidden', p === detectedPageCount);
             
+            // 換頁時自動取消縮放
             if (isZoomed) {
-                document.querySelectorAll('.zoom-container').forEach(c => c.classList.remove('zoomed'));
                 isZoomed = false;
-                container.style.overflowX = 'auto';
                 document.body.classList.remove('zoomed-active');
+                container.style.overflowX = 'auto';
                 document.getElementById('zoomToggle').classList.remove('bg-white', 'text-black');
+                document.querySelectorAll('.zoom-container').forEach(el => {
+                    el.classList.remove('zoomed');
+                    el.style.transform = '';
+                });
             }
         }
 
