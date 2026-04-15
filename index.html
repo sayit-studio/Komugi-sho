@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=3.0, user-scalable=yes, viewport-fit=cover">
-    <title>小麥所｜線上菜單</title>
+    <title>小麥所｜分店線上菜單</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;700;900&display=swap');
         
         body {
             font-family: 'Noto Sans TC', sans-serif;
@@ -36,46 +36,37 @@
             pointer-events: none;
         }
 
+        /* 分店按鈕基礎樣式 */
         .store-btn {
             width: 100%;
             max-width: 320px;
-            background: linear-gradient(135deg, #222 0%, #111 100%);
-            border: 1px solid rgba(212, 175, 55, 0.2);
-            padding: 22px;
-            margin-bottom: 15px;
+            background: linear-gradient(135deg, #181818 0%, #0a0a0a 100%);
+            padding: 24px;
+            margin-bottom: 18px;
             border-radius: 12px;
             text-align: center;
-            transition: all 0.3s;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            border: 1px solid transparent;
         }
 
         .store-btn:active {
             transform: scale(0.96);
-            border-color: #d4af37;
-            background: #1a1a1a;
+            filter: brightness(1.2);
         }
 
-        /* 正在建置中 Overlay */
-        .construction-overlay {
-            position: fixed;
-            inset: 0;
-            background: #050505;
-            z-index: 150;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 40px;
-            text-align: center;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.5s;
-        }
+        /* 不同分店的色彩設定 */
+        .btn-boguan { border-color: rgba(230, 57, 70, 0.3); } /* 博館店：磚紅 */
+        .btn-boguan .store-label { color: #e63946; }
+        .btn-boguan:hover, .btn-boguan:active { border-color: #e63946; box-shadow: 0 0 20px rgba(230, 57, 70, 0.2); }
 
-        .construction-overlay.visible {
-            opacity: 1;
-            pointer-events: auto;
-        }
+        .btn-qinmei { border-color: rgba(212, 175, 55, 0.3); } /* 勤美店：經典金 */
+        .btn-qinmei .store-label { color: #d4af37; }
+        .btn-qinmei:hover, .btn-qinmei:active { border-color: #d4af37; box-shadow: 0 0 20px rgba(212, 175, 55, 0.2); }
+
+        .btn-gongyi { border-color: rgba(42, 157, 143, 0.3); } /* 公益店：青綠 */
+        .btn-gongyi .store-label { color: #2a9d8f; }
+        .btn-gongyi:hover, .btn-gongyi:active { border-color: #2a9d8f; box-shadow: 0 0 20px rgba(42, 157, 143, 0.2); }
 
         /* 菜單主容器 */
         .menu-container {
@@ -182,7 +173,7 @@
 
         .nav-dot.active { background-color: #d4af37; width: 22px; }
 
-        /* 導覽功能按鈕 - 實體按鈕風格 */
+        /* 導覽按鈕 */
         .solid-btn {
             background: #d4af37;
             color: #000;
@@ -190,30 +181,11 @@
             padding: 8px 14px;
             border-radius: 6px;
             font-size: 11px;
-            letter-spacing: 0.5px;
             box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4);
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .solid-btn:active { transform: scale(0.95); opacity: 0.9; }
-
-        .zoom-btn {
-            background: rgba(255, 255, 255, 0.1);
-            color: #fff;
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-size: 11px;
-            border: 1px solid rgba(255, 255, 255, 0.15);
-        }
-        .zoom-btn.active {
-            background: #fff;
-            color: #000;
-            border-color: #fff;
+            display: flex; align-items: center; justify-content: center;
         }
 
-        .back-btn {
+        .back-btn, .zoom-btn {
             background: rgba(255, 255, 255, 0.1);
             color: #fff;
             padding: 8px 12px;
@@ -221,8 +193,9 @@
             font-size: 11px;
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
+        
+        .zoom-btn.active { background: #fff; color: #000; }
 
-        /* 縮放提示條 */
         .zoom-tip {
             position: fixed;
             top: 85px; left: 50%; transform: translateX(-50%);
@@ -238,42 +211,34 @@
 </head>
 <body>
 
-    <!-- 店點選擇首頁 -->
+    <!-- 分店選擇首頁 -->
     <div id="landingPage" class="landing-page">
         <div class="mb-14 text-center">
-            <h2 class="text-yellow-600 tracking-[0.6em] text-xs mb-3">KOMUGI-SHO</h2>
-            <h3 class="text-2xl font-bold tracking-[0.2em] text-white">請選擇分店查看菜單</h3>
+            <div class="inline-block px-4 py-1 border border-yellow-600/30 rounded-full mb-4">
+                <h2 class="text-yellow-600 tracking-[0.5em] text-[10px] font-bold">KOMUGI-SHO</h2>
+            </div>
+            <h3 class="text-2xl font-bold tracking-[0.1em] text-white">請選擇分店查看菜單</h3>
         </div>
         
-        <button onclick="handleStoreClick('博館店', '小麥所居酒屋/日式揚物 博館店')" class="store-btn group">
-            <span class="block text-gray-500 text-[10px] mb-1 tracking-widest uppercase">Japanese Fried Food</span>
+        <!-- 博館店 -->
+        <button onclick="handleStoreClick('博館店', '小麥所居酒屋/日式揚物 博館店')" class="store-btn group btn-boguan">
+            <span class="block store-label text-[10px] mb-1 tracking-widest uppercase font-bold">Japanese Fried Food</span>
             <span class="text-white font-bold text-lg">小麥所 博館店</span>
         </button>
 
-        <button onclick="handleStoreClick('勤美店', '小麥所居酒屋/旨火串烤 勤美店')" class="store-btn group border-yellow-600/50">
-            <span class="block text-yellow-600/70 text-[10px] mb-1 tracking-widest uppercase font-bold">Recommended / Charcoal Grill</span>
+        <!-- 勤美店 -->
+        <button onclick="handleStoreClick('勤美店', '小麥所居酒屋/旨火串烤 勤美店')" class="store-btn group btn-qinmei">
+            <span class="block store-label text-[10px] mb-1 tracking-widest uppercase font-bold">Charcoal Grill</span>
             <span class="text-white font-bold text-xl">小麥所 勤美店</span>
         </button>
 
-        <button onclick="handleStoreClick('公益店', '小麥所居酒屋/旬味小肴 公益店')" class="store-btn group">
-            <span class="block text-gray-500 text-[10px] mb-1 tracking-widest uppercase">Seasonal Appetizers</span>
+        <!-- 公益店 -->
+        <button onclick="handleStoreClick('公益店', '小麥所居酒屋/旬味小肴 公益店')" class="store-btn group btn-gongyi">
+            <span class="block store-label text-[10px] mb-1 tracking-widest uppercase font-bold">Seasonal Appetizers</span>
             <span class="text-white font-bold text-lg">小麥所 公益店</span>
         </button>
 
         <p class="mt-10 text-[9px] text-gray-600 tracking-[0.3em] uppercase opacity-50">Select a location to continue</p>
-    </div>
-
-    <!-- 正在建置中提示頁 -->
-    <div id="constructionPage" class="construction-overlay">
-        <div class="mb-8">
-            <div class="h-20 w-20 border-t-2 border-yellow-600 rounded-full animate-spin mx-auto mb-6"></div>
-            <h2 id="constTitle" class="text-xl font-bold text-white mb-2">分店名稱</h2>
-            <p class="text-yellow-600/80 tracking-[0.3em] font-bold">線上菜單正在建置中</p>
-            <p class="text-gray-500 text-sm mt-4">COMING SOON</p>
-        </div>
-        <button onclick="backToLanding()" class="bg-white/10 text-white px-8 py-3 rounded-full border border-white/20 text-sm">
-            返回選擇其他分店
-        </button>
     </div>
 
     <!-- 讀取載入畫面 -->
@@ -284,9 +249,9 @@
 
     <!-- 頂部導覽列 -->
     <header class="fixed top-0 left-0 w-full z-50 bg-black/60 backdrop-blur-xl py-4 px-4 flex justify-between items-center border-b border-white/5">
-        <div class="flex flex-col max-w-[100px]">
+        <div class="flex flex-col max-w-[120px]">
             <h1 id="mainTitle" class="text-[10px] font-black tracking-tighter text-white truncate">小麥所</h1>
-            <span class="text-[8px] text-gray-500 tracking-tighter uppercase font-bold">Menu Nav</span>
+            <span class="text-[8px] text-gray-500 tracking-tighter uppercase font-bold">Menu Navigation</span>
         </div>
         <div class="flex gap-1.5">
             <button onclick="backToLanding()" class="back-btn flex items-center gap-1">
@@ -301,7 +266,7 @@
         </div>
     </header>
 
-    <div class="zoom-tip">現在為一鍵放大模式，可自由拖曳查看</div>
+    <div class="zoom-tip">一鍵放大模式，可自由拖曳</div>
 
     <!-- 左右翻頁按鈕 -->
     <button id="prevBtn" class="nav-btn left-[10px] btn-hidden">
@@ -326,13 +291,13 @@
     <!-- 菜單主要捲動容器 -->
     <main id="menuContainer" class="menu-container"></main>
 
-    <!-- 底部頁碼與導覽點 -->
+    <!-- 底部資訊 -->
     <footer class="fixed bottom-0 left-0 w-full z-30 p-8 pointer-events-none bg-gradient-to-t from-black to-transparent">
         <div class="flex justify-center space-x-2 pointer-events-auto" id="dotsContainer"></div>
         <p id="pageIndicator" class="text-center mt-3 text-[9px] text-gray-500 tracking-[0.4em] font-bold">PAGE 1 / 12</p>
     </footer>
 
-    <!-- 目錄全螢幕彈窗 -->
+    <!-- 目錄彈窗 -->
     <div id="modal" class="fixed inset-0 z-[100] bg-black/98 hidden backdrop-blur-2xl p-10 overflow-y-auto">
         <div class="max-w-xs mx-auto">
             <div class="flex justify-between items-center mb-10 border-b border-white/10 pb-4">
@@ -347,18 +312,19 @@
     </div>
 
     <script>
-        // 設定勤美店的圖片來源
+        // 設定各分店圖片路徑 (基於 GitHub 截圖)
         const storeData = {
             '勤美店': 'https://raw.githubusercontent.com/sayit-studio/Komugi-sho/main/menu_%E5%8B%A4%E7%BE%8E/',
+            '博館店': 'https://raw.githubusercontent.com/sayit-studio/Komugi-sho/main/menu_%E5%8D%9A%E9%A4%A8/',
+            '公益店': 'https://raw.githubusercontent.com/sayit-studio/Komugi-sho/main/menu_%E5%85%AC%E7%9B%8A/'
         };
 
-        const totalSpreads = 12;
+        const totalSpreads = 12; // 預設 12 跨頁
         const container = document.getElementById('menuContainer');
         const dotsContainer = document.getElementById('dotsContainer');
         const indexList = document.getElementById('indexList');
         const ctaContainer = document.getElementById('ctaContainer');
         const landingPage = document.getElementById('landingPage');
-        const constructionPage = document.getElementById('constructionPage');
         const loader = document.getElementById('loader');
         
         let idleTimer;
@@ -367,13 +333,6 @@
 
         // 處理店點點擊
         function handleStoreClick(key, fullName) {
-            if (key !== '勤美店') {
-                document.getElementById('constTitle').innerText = fullName;
-                constructionPage.classList.add('visible');
-                resetIdleTimer();
-                return;
-            }
-
             document.getElementById('mainTitle').innerText = fullName;
             document.getElementById('modalStoreName').innerText = fullName;
             loader.classList.remove('hidden');
@@ -387,22 +346,12 @@
             }, 1000);
         }
 
-        // 返回分店選擇首頁
+        // 返回分店選擇
         function backToLanding() {
-            constructionPage.classList.remove('visible');
-            landingPage.classList.remove('hide'); 
-            
-            setTimeout(() => {
-                landingPage.classList.remove('hide');
-                constructionPage.classList.remove('visible');
-                ctaContainer.classList.remove('visible');
-                clearTimeout(idleTimer);
-                
-                // 返回首頁時若是在放大狀態，則重置
-                if (isZoomed) {
-                    toggleZoom();
-                }
-            }, 50);
+            landingPage.classList.remove('hide');
+            ctaContainer.classList.remove('visible');
+            clearTimeout(idleTimer);
+            if (isZoomed) toggleZoom();
         }
 
         // 初始化菜單生成
@@ -410,6 +359,7 @@
             container.innerHTML = '';
             dotsContainer.innerHTML = '';
             indexList.innerHTML = '';
+            currentPage = 1;
 
             for (let i = 1; i <= totalSpreads; i++) {
                 const spread = document.createElement('div');
@@ -430,36 +380,41 @@
                 imgR.src = `${path}${i}-2.jpg`;
                 imgR.loading = (i <= 2) ? "eager" : "lazy";
 
+                // 錯誤處理：如果該店圖片未滿 12 頁，顯示預設圖片
+                const handleError = (img) => {
+                    img.onerror = null;
+                    img.src = "https://via.placeholder.com/600x840/111/333?text=KOMUGI+SHO";
+                };
+                imgL.onerror = () => handleError(imgL);
+                imgR.onerror = () => handleError(imgR);
+
                 wrapper.appendChild(imgL);
                 wrapper.appendChild(imgR);
                 zoomCont.appendChild(wrapper);
                 spread.appendChild(zoomCont);
                 container.appendChild(spread);
 
-                // 生成底部導覽點
                 const dot = document.createElement('div');
                 dot.className = `nav-dot h-1 w-2 bg-white/10 rounded-full transition-all duration-300 ${i === 1 ? 'active' : ''}`;
                 dot.id = `dot-${i}`;
                 dotsContainer.appendChild(dot);
 
-                // 生成目錄內按鈕
                 const btn = document.createElement('button');
                 btn.className = "bg-white/5 border border-white/5 py-4 text-[10px] tracking-widest text-gray-400 hover:text-yellow-600 hover:border-yellow-600/30 transition rounded font-bold";
                 btn.innerText = `PAGE ${i < 10 ? '0'+i : i}`;
                 btn.onclick = () => scrollToPage(i);
                 indexList.appendChild(btn);
             }
+            container.scrollLeft = 0; // 重置捲動位置
             updateUI(1);
         }
 
-        // 跳轉至特定頁面
         function scrollToPage(idx) {
             const target = document.getElementById(`page-${idx}`);
             container.scrollTo({ left: target.offsetLeft, behavior: 'smooth' });
             document.getElementById('modal').classList.add('hidden');
         }
 
-        // 切換放大模式
         function toggleZoom() {
             isZoomed = !isZoomed;
             const currentSpread = document.querySelector(`#page-${currentPage} .zoom-container`);
@@ -480,7 +435,6 @@
 
         document.getElementById('zoomToggle').onclick = toggleZoom;
 
-        // 滾動監聽
         container.addEventListener('scroll', () => {
             const idx = Math.round(container.scrollLeft / window.innerWidth) + 1;
             if (idx !== currentPage) {
@@ -490,7 +444,6 @@
             resetIdleTimer();
         });
 
-        // 更新介面狀態
         function updateUI(p) {
             document.querySelectorAll('.nav-dot').forEach((d, i) => {
                 d.classList.toggle('active', i + 1 === p);
@@ -499,7 +452,6 @@
             document.getElementById('prevBtn').classList.toggle('btn-hidden', p === 1);
             document.getElementById('nextBtn').classList.toggle('btn-hidden', p === totalSpreads);
             
-            // 換頁時自動重置放大狀態
             if (isZoomed) {
                 document.querySelectorAll('.zoom-container').forEach(c => c.classList.remove('zoomed'));
                 isZoomed = false;
@@ -509,19 +461,16 @@
             }
         }
 
-        // 偵測停滯計時器
         function resetIdleTimer() {
             ctaContainer.classList.remove('visible');
             clearTimeout(idleTimer);
-            // 僅在菜單頁面且非建置提示時觸發
-            if (landingPage.classList.contains('hide') && !constructionPage.classList.contains('visible')) {
+            if (landingPage.classList.contains('hide')) {
                 idleTimer = setTimeout(() => {
                     ctaContainer.classList.add('visible');
                 }, 3000);
             }
         }
 
-        // 基本按鈕事件綁定
         document.getElementById('nextBtn').onclick = () => currentPage < totalSpreads && scrollToPage(currentPage + 1);
         document.getElementById('prevBtn').onclick = () => currentPage > 1 && scrollToPage(currentPage - 1);
         document.getElementById('indexBtn').onclick = () => document.getElementById('modal').classList.remove('hidden');
