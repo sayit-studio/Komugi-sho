@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=3.0, user-scalable=yes, viewport-fit=cover">
-    <title>小麥所｜全台分店線上菜單</title>
+    <title>小麥所｜分店線上菜單</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;700;900&display=swap');
@@ -16,7 +16,7 @@
             touch-action: manipulation;
         }
 
-        /* 店點選擇頁面 */
+        /* 店點選擇首頁 */
         .landing-page {
             position: fixed;
             inset: 0;
@@ -63,19 +63,19 @@
         .store-btn:active { transform: scale(0.96); filter: brightness(1.2); }
 
         /* 分店特色色彩設定 */
-        /* 博館店：磚紅 */
+        /* 博館店：磚紅 (日式揚物) */
         .btn-boguan { border-color: rgba(230, 57, 70, 0.4); }
         .btn-boguan .store-label { color: #e63946; }
         .btn-boguan .store-name { color: #fff; text-shadow: 0 0 10px rgba(230, 57, 70, 0.5); }
         .btn-boguan:hover { border-color: #e63946; background: rgba(230, 57, 70, 0.05); }
 
-        /* 勤美店：琥珀金 */
+        /* 勤美店：琥珀金 (旨火串烤) */
         .btn-qinmei { border-color: rgba(212, 175, 55, 0.4); }
         .btn-qinmei .store-label { color: #d4af37; }
         .btn-qinmei .store-name { color: #fff; text-shadow: 0 0 10px rgba(212, 175, 55, 0.5); }
         .btn-qinmei:hover { border-color: #d4af37; background: rgba(212, 175, 55, 0.05); }
 
-        /* 公益店：青綠 */
+        /* 公益店：青綠 (旬味小肴) */
         .btn-gongyi { border-color: rgba(42, 157, 143, 0.4); }
         .btn-gongyi .store-label { color: #2a9d8f; }
         .btn-gongyi .store-name { color: #fff; text-shadow: 0 0 10px rgba(42, 157, 143, 0.5); }
@@ -234,7 +234,7 @@
     <!-- 讀取載入畫面 -->
     <div id="loader" class="hidden fixed inset-0 bg-[#050505] z-[300] flex flex-col items-center justify-center">
         <div class="h-10 w-10 border-2 border-yellow-800/20 border-t-yellow-600 rounded-full animate-spin mb-4"></div>
-        <p class="text-[10px] tracking-[0.4em] text-yellow-600 uppercase">Menu Loading...</p>
+        <p id="loadingText" class="text-[10px] tracking-[0.4em] text-yellow-600 uppercase">Menu Loading...</p>
     </div>
 
     <!-- 頂部導覽列 -->
@@ -302,13 +302,14 @@
     </div>
 
     <script>
-        // GitHub 基礎 URL (確保分支名稱正確)
+        // GitHub 基礎路徑
         const GITHUB_RAW = "https://raw.githubusercontent.com/sayit-studio/Komugi-sho/main/";
         
-        const storePaths = {
-            '勤美店': encodeURI("menu_勤美/"),
-            '博館店': encodeURI("menu_博館/"),
-            '公益店': encodeURI("menu_公益/")
+        // 設定分店配置與命名規則
+        const storeConfigs = {
+            '勤美店': { path: "menu_qinmei/", naming: "dash" }, // 1-1, 1-2
+            '博館店': { path: "menu_boguan/", naming: "index" }, // 1, 2, 3, 4
+            '公益店': { path: "menu_gongyi/", naming: "index" }  // 1, 2, 3, 4
         };
 
         const totalSpreads = 12;
@@ -329,7 +330,7 @@
             loader.classList.remove('hidden');
             landingPage.classList.add('hide');
             
-            initMenu(storePaths[key]);
+            initMenu(storeConfigs[key]);
             
             setTimeout(() => {
                 loader.classList.add('hidden');
@@ -344,11 +345,19 @@
             if (isZoomed) toggleZoom();
         }
 
-        // 圖片載入功能：具備副檔名容錯
-        function loadImageWithFallback(imgElement, basePath, pageNum, side) {
-            const fileName = `${pageNum}-${side}`;
-            const primarySrc = `${GITHUB_RAW}${basePath}${fileName}.jpg`;
-            const fallbackSrc = `${GITHUB_RAW}${basePath}${fileName}.JPG`;
+        // 核心圖片載入函式：處理不同命名規則與大小寫相容
+        function loadImageSet(imgElement, config, pageNum, side) {
+            let fileName = "";
+            if (config.naming === "dash") {
+                // 勤美模式: 1-1, 1-2
+                fileName = `${pageNum}-${side}`;
+            } else {
+                // 博館/公益模式: 1, 2, 3, 4
+                fileName = (pageNum - 1) * 2 + side;
+            }
+
+            const primarySrc = `${GITHUB_RAW}${config.path}${fileName}.jpg`;
+            const fallbackSrc = `${GITHUB_RAW}${config.path}${fileName}.JPG`;
             
             imgElement.src = primarySrc;
             
@@ -362,7 +371,7 @@
             };
         }
 
-        function initMenu(path) {
+        function initMenu(config) {
             container.innerHTML = '';
             dotsContainer.innerHTML = '';
             indexList.innerHTML = '';
@@ -382,8 +391,8 @@
                 const imgL = document.createElement('img');
                 const imgR = document.createElement('img');
                 
-                loadImageWithFallback(imgL, path, i, 1);
-                loadImageWithFallback(imgR, path, i, 2);
+                loadImageSet(imgL, config, i, 1);
+                loadImageSet(imgR, config, i, 2);
 
                 wrapper.appendChild(imgL);
                 wrapper.appendChild(imgR);
